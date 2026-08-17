@@ -3,9 +3,11 @@
     "name": "CoTrip",
     "slug": "CoTrip",
     "version": "1.0.0",
+    "scheme": "cotrip",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -20,6 +22,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-web-browser"
+    ]
   }
 }
