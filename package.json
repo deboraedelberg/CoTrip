@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/metro-runtime": "~57.0.11",
     "expo": "~57.0.14",
     "expo-constants": "~57.0.12",
     "expo-linking": "~57.0.6",
@@ -12,11 +13,13 @@
     "expo-web-browser": "~57.0.2",
     "nativewind": "^4.2.6",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.2",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.2",
+    "react-native-web": "^0.21.2",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
@@ -27,7 +30,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "vercel-build": "expo export -p web"
   },
   "private": true
 }
