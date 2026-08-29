@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { View } from 'react-native';
 
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { EditableText } from '@/components/ui/editable-text';
 import { Text } from '@/components/ui/text';
@@ -54,15 +54,19 @@ export function TripHeader({ trip, members, onInvitePress, onRenameTrip }: TripH
       </View>
 
       <View className="flex-row -space-x-2">
-        {members.map((member) => (
-          <Avatar
-            key={member.user_id}
-            name={member.profile?.full_name || member.profile?.email || '?'}
-            imageUrl={member.profile?.avatar_url}
-            size={32}
-            className="border-2 border-background"
-          />
-        ))}
+        {members.map((member) => {
+          const label = member.profile?.full_name || member.profile?.email || '?';
+          return (
+            <Avatar key={member.user_id} alt={label} className="border-2 border-background">
+              {member.profile?.avatar_url ? (
+                <AvatarImage source={{ uri: member.profile.avatar_url }} />
+              ) : null}
+              <AvatarFallback>
+                <Text>{label.charAt(0).toUpperCase()}</Text>
+              </AvatarFallback>
+            </Avatar>
+          );
+        })}
       </View>
     </View>
   );

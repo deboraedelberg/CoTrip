@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - expo@57.0.14
   - '@expo/metro-runtime@57.0.11'
   - expo-router@57.0.14
+  - lucide-react-native@1.37.0
 
 overrides:
   lightningcss: 1.30.1

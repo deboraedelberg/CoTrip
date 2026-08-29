@@ -4,7 +4,7 @@ import { FlatList, Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useTrips } from '@/hooks/useTrips';
@@ -66,10 +66,12 @@ export default function TripsScreen() {
             renderItem={({ item }) => (
               <Pressable onPress={() => router.push(`/trip/${item.id}`)}>
                 <Card>
-                  <Text className="text-lg font-semibold">{item.name}</Text>
-                  {item.destination ? (
-                    <Text className="text-muted-foreground">{item.destination}</Text>
-                  ) : null}
+                  <CardContent className="gap-1">
+                    <Text className="text-lg font-semibold">{item.name}</Text>
+                    {item.destination ? (
+                      <Text className="text-muted-foreground">{item.destination}</Text>
+                    ) : null}
+                  </CardContent>
                 </Card>
               </Pressable>
             )}
