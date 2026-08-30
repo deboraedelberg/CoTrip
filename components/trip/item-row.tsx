@@ -1,8 +1,13 @@
+import { GripVertical, Minus, Plus, Trash2 } from 'lucide-react-native';
 import * as React from 'react';
 import { Pressable, View } from 'react-native';
+import Sortable from 'react-native-sortables';
 
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { EditableText } from '@/components/ui/editable-text';
+import { Icon } from '@/components/ui/icon';
+import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import type { Item } from '@/hooks/useItems';
 import { cn } from '@/lib/utils';
@@ -25,10 +30,15 @@ export function ItemRow({
   onRetry,
 }: ItemRowProps) {
   const [editingName, setEditingName] = React.useState(false);
-  const [editingQuantity, setEditingQuantity] = React.useState(false);
 
   return (
-    <View className="flex-row items-center gap-3 border-b border-border px-4 py-3">
+    <View className="flex-row items-center gap-2 border-b border-border px-4 py-2">
+      <Sortable.Handle>
+        <View className="p-1">
+          <Icon as={GripVertical} size={16} className="text-muted-foreground" />
+        </View>
+      </Sortable.Handle>
+
       <Checkbox checked={item.is_packed} onCheckedChange={onTogglePacked} />
 
       <View className="flex-1">
@@ -44,28 +54,32 @@ export function ItemRow({
         />
       </View>
 
-      {editingQuantity ? (
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            hitSlop={8}
-            onPress={() => onChangeQuantity(item.quantity - 1)}
-            disabled={item.quantity <= 1}
-          >
-            <Text className={cn('text-lg', item.quantity <= 1 && 'text-muted-foreground')}>−</Text>
-          </Pressable>
-          <Text className="w-4 text-center">{item.quantity}</Text>
-          <Pressable hitSlop={8} onPress={() => onChangeQuantity(item.quantity + 1)}>
-            <Text className="text-lg">+</Text>
-          </Pressable>
-          <Pressable hitSlop={8} onPress={() => setEditingQuantity(false)}>
-            <Text className="text-primary">Listo</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <Pressable onPress={() => setEditingQuantity(true)} hitSlop={8}>
-          <Text className="text-muted-foreground">×{item.quantity}</Text>
+      <View className="flex-row items-center gap-1">
+        <Pressable
+          hitSlop={8}
+          onPress={() => onChangeQuantity(item.quantity - 1)}
+          disabled={item.quantity <= 1}
+          className={cn('h-7 w-7 items-center justify-center', item.quantity <= 1 && 'opacity-40')}
+        >
+          <Icon as={Minus} size={14} className="text-foreground" />
         </Pressable>
-      )}
+        <Input
+          value={String(item.quantity)}
+          onChangeText={(text) => {
+            const parsed = parseInt(text.replace(/[^0-9]/g, ''), 10);
+            if (!Number.isNaN(parsed)) onChangeQuantity(parsed);
+          }}
+          keyboardType="number-pad"
+          className="h-7 w-10 px-1 text-center"
+        />
+        <Pressable
+          hitSlop={8}
+          onPress={() => onChangeQuantity(item.quantity + 1)}
+          className="h-7 w-7 items-center justify-center"
+        >
+          <Icon as={Plus} size={14} className="text-foreground" />
+        </Pressable>
+      </View>
 
       {item._status === 'pending' ? <View className="h-2 w-2 rounded-full bg-muted-foreground" /> : null}
       {item._status === 'error' ? (
@@ -74,9 +88,9 @@ export function ItemRow({
         </Pressable>
       ) : null}
 
-      <Pressable onPress={onDelete} hitSlop={8}>
-        <Text className="text-muted-foreground">×</Text>
-      </Pressable>
+      <Button variant="ghost" size="icon" className="h-8 w-8" onPress={onDelete}>
+        <Icon as={Trash2} size={16} className="text-muted-foreground" />
+      </Button>
     </View>
   );
 }

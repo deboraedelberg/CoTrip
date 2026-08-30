@@ -1,22 +1,24 @@
+import { Plus } from 'lucide-react-native';
 import * as React from 'react';
-import { TextInput, View } from 'react-native';
+import { TextInput } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { Text } from '@/components/ui/text';
 
 interface QuickAddInputProps {
   onSubmit: (name: string) => void;
   placeholder?: string;
-  bordered?: boolean;
-  className?: string;
+  label?: string;
 }
 
 export function QuickAddInput({
   onSubmit,
-  placeholder = '+ agregar item…',
-  bordered = true,
-  className,
+  placeholder = 'Nombre del item…',
+  label = 'Agregar item',
 }: QuickAddInputProps) {
+  const [active, setActive] = React.useState(false);
   const [value, setValue] = React.useState('');
   const inputRef = React.useRef<TextInput>(null);
 
@@ -24,7 +26,7 @@ export function QuickAddInput({
     const trimmed = value.trim();
     setValue('');
     if (!trimmed) {
-      inputRef.current?.focus();
+      setActive(false);
       return;
     }
     onSubmit(trimmed);
@@ -32,17 +34,27 @@ export function QuickAddInput({
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
+  if (!active) {
+    return (
+      <Button variant="secondary" size="sm" onPress={() => setActive(true)}>
+        <Icon as={Plus} size={16} />
+        <Text>{label}</Text>
+      </Button>
+    );
+  }
+
   return (
-    <View className={cn(bordered && 'border-t border-border px-4 py-3', className)}>
-      <Input
-        ref={inputRef}
-        value={value}
-        onChangeText={setValue}
-        onSubmitEditing={handleSubmit}
-        placeholder={placeholder}
-        returnKeyType="done"
-        blurOnSubmit={false}
-      />
-    </View>
+    <Input
+      ref={inputRef}
+      autoFocus
+      value={value}
+      onChangeText={setValue}
+      onSubmitEditing={handleSubmit}
+      onBlur={handleSubmit}
+      placeholder={placeholder}
+      returnKeyType="done"
+      blurOnSubmit={false}
+      className="h-9 min-w-40 flex-1"
+    />
   );
 }

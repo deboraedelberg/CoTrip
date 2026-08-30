@@ -16,7 +16,7 @@ export function usePackingLists(tripId: string) {
       .from('packing_lists')
       .select('*')
       .eq('trip_id', tripId)
-      .order('created_at', { ascending: true });
+      .order('position', { ascending: true });
     if (!error && data) setLists(data);
     setLoading(false);
   }, [tripId]);
@@ -53,10 +53,12 @@ export function usePackingLists(tripId: string) {
     if (!session) return { error: new Error('Not signed in') };
 
     const tempId = `temp-${Date.now()}`;
+    const position = lists.length;
     const optimistic: PackingList = {
       id: tempId,
       trip_id: tripId,
       name,
+      position,
       created_by: session.user.id,
       created_at: new Date().toISOString(),
     };
@@ -64,7 +66,7 @@ export function usePackingLists(tripId: string) {
 
     const { data, error } = await supabase
       .from('packing_lists')
-      .insert({ trip_id: tripId, name, created_by: session.user.id })
+      .insert({ trip_id: tripId, name, position, created_by: session.user.id })
       .select()
       .single();
 
@@ -100,5 +102,22 @@ export function usePackingLists(tripId: string) {
     return { data };
   }
 
-  return { lists, loading, createList, renameList };
+  async function reorderLists(orderedIds: string[]) {
+    const previous = lists;
+    const byId = new Map(previous.map((l) => [l.id, l]));
+    const reordered = orderedIds
+      .map((id, index) => {
+        const list = byId.get(id);
+        return list ? { ...list, position: index } : null;
+      })
+      .filter((l): l is PackingList => l !== null);
+    setLists(reordered);
+
+    const results = await Promise.all(
+      reordered.map((l) => supabase.from('packing_lists').update({ position: l.position }).eq('id', l.id))
+    );
+    if (results.some((r) => r.error)) setLists(previous);
+  }
+
+  return { lists, loading, createList, renameList, reorderLists };
 }

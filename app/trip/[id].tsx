@@ -1,13 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import * as React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Sortable from 'react-native-sortables';
 
 import { CategorySection } from '@/components/trip/category-section';
 import { InviteSheet } from '@/components/trip/invite-sheet';
 import { PackingListTabs } from '@/components/trip/packing-list-tabs';
 import { TripHeader } from '@/components/trip/trip-header';
-import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useItems } from '@/hooks/useItems';
 import { usePackingListCategories } from '@/hooks/usePackingListCategories';
@@ -19,11 +19,10 @@ export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { trip, loading: tripLoading, renameTrip } = useTrip(id);
   const { members } = useTripMembers(id);
-  const { lists, createList, renameList } = usePackingLists(id);
+  const { lists, createList, renameList, reorderLists } = usePackingLists(id);
   const [activeListId, setActiveListId] = React.useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [addingCategory, setAddingCategory] = React.useState(false);
-  const [newCategoryName, setNewCategoryName] = React.useState('');
+  const [justCreatedCategoryId, setJustCreatedCategoryId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!activeListId && lists.length > 0) {
@@ -31,10 +30,15 @@ export default function TripScreen() {
     }
   }, [lists, activeListId]);
 
-  const { categories, createCategory, renameCategory, deleteCategory } =
+  const { categories, createCategory, renameCategory, deleteCategory, reorderCategories } =
     usePackingListCategories(activeListId);
-  const { items, retryAdd, togglePacked, renameItem, setQuantity, deleteItem, addItem } =
+  const { items, retryAdd, togglePacked, renameItem, setQuantity, deleteItem, addItem, reorderItems } =
     useItems(activeListId);
+
+  async function handleAddCategory() {
+    const result = await createCategory('Nueva categoría');
+    if (result?.data) setJustCreatedCategoryId(result.data.id);
+  }
 
   if (tripLoading || !trip) {
     return (
@@ -46,13 +50,6 @@ export default function TripScreen() {
 
   const packedCount = items.filter((i) => i.is_packed).length;
   const uncategorizedItems = items.filter((i) => !i.category_id);
-
-  function handleAddCategory() {
-    const trimmed = newCategoryName.trim();
-    if (trimmed) createCategory(trimmed);
-    setNewCategoryName('');
-    setAddingCategory(false);
-  }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['bottom', 'left', 'right']}>
@@ -73,6 +70,7 @@ export default function TripScreen() {
           if (result?.data) setActiveListId(result.data.id);
         }}
         onRename={renameList}
+        onReorder={reorderLists}
       />
 
       {!activeListId ? (
@@ -87,50 +85,43 @@ export default function TripScreen() {
             {packedCount}/{items.length} empacados
           </Text>
           <ScrollView className="flex-1">
-            {categories.map((category) => (
-              <CategorySection
-                key={category.id}
-                category={category}
-                items={items.filter((i) => i.category_id === category.id)}
-                onRenameCategory={(name) => renameCategory(category.id, name)}
-                onDeleteCategory={() => deleteCategory(category.id)}
-                onAddItem={(name) => addItem(name, category.id)}
-                onTogglePacked={togglePacked}
-                onRenameItem={renameItem}
-                onChangeQuantity={setQuantity}
-                onDeleteItem={deleteItem}
-                onRetryItem={retryAdd}
-              />
-            ))}
+            <Sortable.Flex
+              flexDirection="column"
+              customHandle
+              onOrderChange={({ indexToKey }) => reorderCategories(indexToKey)}
+            >
+              {categories.map((category) => (
+                <CategorySection
+                  key={category.id}
+                  category={category}
+                  items={items.filter((i) => i.category_id === category.id)}
+                  autoEditName={category.id === justCreatedCategoryId}
+                  onRenameCategory={(name) => renameCategory(category.id, name)}
+                  onDeleteCategory={() => deleteCategory(category.id)}
+                  onAddCategory={handleAddCategory}
+                  onAddItem={(name) => addItem(name, category.id)}
+                  onTogglePacked={togglePacked}
+                  onRenameItem={renameItem}
+                  onChangeQuantity={setQuantity}
+                  onDeleteItem={deleteItem}
+                  onRetryItem={retryAdd}
+                  onReorderItems={(orderedIds) => reorderItems(category.id, orderedIds)}
+                />
+              ))}
+            </Sortable.Flex>
 
             <CategorySection
               category={null}
               items={uncategorizedItems}
+              onAddCategory={handleAddCategory}
               onAddItem={(name) => addItem(name, null)}
               onTogglePacked={togglePacked}
               onRenameItem={renameItem}
               onChangeQuantity={setQuantity}
               onDeleteItem={deleteItem}
               onRetryItem={retryAdd}
+              onReorderItems={(orderedIds) => reorderItems(null, orderedIds)}
             />
-
-            {addingCategory ? (
-              <View className="px-4 py-2">
-                <Input
-                  autoFocus
-                  value={newCategoryName}
-                  onChangeText={setNewCategoryName}
-                  onSubmitEditing={handleAddCategory}
-                  onBlur={handleAddCategory}
-                  placeholder="Nombre de la categoría"
-                  returnKeyType="done"
-                />
-              </View>
-            ) : (
-              <Pressable onPress={() => setAddingCategory(true)} className="px-4 py-3">
-                <Text className="text-primary">+ nueva categoría</Text>
-              </Pressable>
-            )}
           </ScrollView>
         </>
       )}

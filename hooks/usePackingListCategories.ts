@@ -126,5 +126,24 @@ export function usePackingListCategories(packingListId: string | null) {
     if (error) setCategories(previous);
   }
 
-  return { categories, loading, createCategory, renameCategory, deleteCategory };
+  async function reorderCategories(orderedIds: string[]) {
+    const previous = categories;
+    const byId = new Map(previous.map((c) => [c.id, c]));
+    const reordered = orderedIds
+      .map((id, index) => {
+        const category = byId.get(id);
+        return category ? { ...category, position: index } : null;
+      })
+      .filter((c): c is Category => c !== null);
+    setCategories(reordered);
+
+    const results = await Promise.all(
+      reordered.map((c) =>
+        supabase.from('packing_list_categories').update({ position: c.position }).eq('id', c.id)
+      )
+    );
+    if (results.some((r) => r.error)) setCategories(previous);
+  }
+
+  return { categories, loading, createCategory, renameCategory, deleteCategory, reorderCategories };
 }

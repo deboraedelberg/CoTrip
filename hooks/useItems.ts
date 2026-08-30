@@ -19,7 +19,7 @@ export function useItems(packingListId: string | null) {
       .from('items')
       .select('*')
       .eq('packing_list_id', packingListId)
-      .order('created_at', { ascending: true });
+      .order('position', { ascending: true });
     if (!error && data) {
       setItems(data.map((row) => ({ ...row, _status: 'synced' as const })));
     }
@@ -67,12 +67,14 @@ export function useItems(packingListId: string | null) {
     if (!trimmed || !session || !packingListId) return;
 
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const position = items.filter((i) => i.category_id === categoryId).length;
     const optimistic: Item = {
       id: tempId,
       packing_list_id: packingListId,
       category_id: categoryId,
       name: trimmed,
       quantity: 1,
+      position,
       is_packed: false,
       packed_by: null,
       packed_at: null,
@@ -89,6 +91,7 @@ export function useItems(packingListId: string | null) {
         packing_list_id: packingListId,
         category_id: categoryId,
         name: trimmed,
+        position,
         created_by: session.user.id,
       })
       .select()
@@ -114,6 +117,7 @@ export function useItems(packingListId: string | null) {
         packing_list_id: packingListId,
         category_id: item.category_id,
         name: item.name,
+        position: item.position,
         created_by: session.user.id,
       })
       .select()
@@ -220,5 +224,35 @@ export function useItems(packingListId: string | null) {
     if (error) setItems(previous);
   }
 
-  return { items, loading, addItem, retryAdd, togglePacked, renameItem, setQuantity, deleteItem };
+  /** Reorders items within a single category (or the uncategorized bucket, id = null). */
+  async function reorderItems(categoryId: string | null, orderedIds: string[]) {
+    const previous = items;
+    const byId = new Map(previous.map((i) => [i.id, i]));
+    const reorderedIds = new Set(orderedIds);
+    const reorderedInScope = orderedIds
+      .map((id, index) => {
+        const item = byId.get(id);
+        return item && item.category_id === categoryId ? { ...item, position: index } : null;
+      })
+      .filter((i): i is Item => i !== null);
+    const rest = previous.filter((i) => !reorderedIds.has(i.id));
+    setItems([...rest, ...reorderedInScope]);
+
+    const results = await Promise.all(
+      reorderedInScope.map((i) => supabase.from('items').update({ position: i.position }).eq('id', i.id))
+    );
+    if (results.some((r) => r.error)) setItems(previous);
+  }
+
+  return {
+    items,
+    loading,
+    addItem,
+    retryAdd,
+    togglePacked,
+    renameItem,
+    setQuantity,
+    deleteItem,
+    reorderItems,
+  };
 }

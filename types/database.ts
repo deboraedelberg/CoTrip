@@ -60,6 +60,7 @@ export interface Database {
           id: string;
           trip_id: string;
           name: string;
+          position: number;
           created_by: string;
           created_at: string;
         };
@@ -78,6 +79,7 @@ export interface Database {
           category_id: string | null;
           name: string;
           quantity: number;
+          position: number;
           is_packed: boolean;
           packed_by: string | null;
           packed_at: string | null;
