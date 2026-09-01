@@ -102,6 +102,15 @@ export function usePackingLists(tripId: string) {
     return { data };
   }
 
+  async function deleteList(id: string) {
+    const previous = lists;
+    setLists((prev) => prev.filter((l) => l.id !== id));
+
+    const { error } = await supabase.from('packing_lists').delete().eq('id', id);
+    if (error) setLists(previous);
+    return { error };
+  }
+
   async function reorderLists(orderedIds: string[]) {
     const previous = lists;
     const byId = new Map(previous.map((l) => [l.id, l]));
@@ -119,5 +128,5 @@ export function usePackingLists(tripId: string) {
     if (results.some((r) => r.error)) setLists(previous);
   }
 
-  return { lists, loading, createList, renameList, reorderLists };
+  return { lists, loading, createList, renameList, deleteList, reorderLists };
 }

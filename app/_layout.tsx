@@ -3,6 +3,7 @@ import "@/global.css";
 import { PortalHost } from "@rn-primitives/portal";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useAuthDeepLink } from "@/hooks/useAuthDeepLink";
@@ -28,10 +29,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="auto" />
-      <RootNavigator />
-      <PortalHost />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <StatusBar style="auto" />
+        <RootNavigator />
+        <PortalHost />
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

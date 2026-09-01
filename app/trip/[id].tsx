@@ -19,14 +19,15 @@ export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { trip, loading: tripLoading, renameTrip } = useTrip(id);
   const { members } = useTripMembers(id);
-  const { lists, createList, renameList, reorderLists } = usePackingLists(id);
+  const { lists, createList, renameList, deleteList, reorderLists } = usePackingLists(id);
   const [activeListId, setActiveListId] = React.useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [justCreatedCategoryId, setJustCreatedCategoryId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!activeListId && lists.length > 0) {
-      setActiveListId(lists[0].id);
+    const activeStillExists = lists.some((l) => l.id === activeListId);
+    if (!activeStillExists) {
+      setActiveListId(lists.length > 0 ? lists[0].id : null);
     }
   }, [lists, activeListId]);
 
@@ -70,6 +71,7 @@ export default function TripScreen() {
           if (result?.data) setActiveListId(result.data.id);
         }}
         onRename={renameList}
+        onDelete={deleteList}
         onReorder={reorderLists}
       />
 

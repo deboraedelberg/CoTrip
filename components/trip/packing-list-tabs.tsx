@@ -1,7 +1,20 @@
+import { Pencil, Trash2 } from 'lucide-react-native';
 import * as React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import Sortable from 'react-native-sortables';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
@@ -15,6 +28,7 @@ interface PackingListTabsProps {
   onSelect: (id: string) => void;
   onCreate: (name: string) => void;
   onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
 }
 
@@ -24,6 +38,7 @@ export function PackingListTabs({
   onSelect,
   onCreate,
   onRename,
+  onDelete,
   onReorder,
 }: PackingListTabsProps) {
   const [creating, setCreating] = React.useState(false);
@@ -65,25 +80,66 @@ export function PackingListTabs({
               returnKeyType="done"
             />
           ) : (
-            <Pressable
+            <View
               key={list.id}
-              onPress={() => {
-                if (list.id === activeId) {
-                  setEditingId(list.id);
-                  setEditingName(list.name);
-                } else {
-                  onSelect(list.id);
-                }
-              }}
               className={cn(
-                'rounded-full px-4 py-2',
+                'flex-row items-center gap-0.5 rounded-full py-1 pl-4 pr-1',
                 list.id === activeId ? 'bg-primary' : 'bg-secondary'
               )}
             >
-              <Text className={list.id === activeId ? 'text-primary-foreground' : 'text-secondary-foreground'}>
-                {list.name}
-              </Text>
-            </Pressable>
+              <Pressable onPress={() => onSelect(list.id)} hitSlop={4} className="py-1 pr-1">
+                <Text className={list.id === activeId ? 'text-primary-foreground' : 'text-secondary-foreground'}>
+                  {list.name}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setEditingId(list.id);
+                  setEditingName(list.name);
+                }}
+                hitSlop={4}
+                className="h-7 w-7 items-center justify-center rounded-full active:bg-black/10"
+              >
+                <Icon
+                  as={Pencil}
+                  size={13}
+                  className={list.id === activeId ? 'text-primary-foreground' : 'text-muted-foreground'}
+                />
+              </Pressable>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Pressable hitSlop={4} className="h-7 w-7 items-center justify-center rounded-full active:bg-black/10">
+                    <Icon
+                      as={Trash2}
+                      size={13}
+                      className={list.id === activeId ? 'text-primary-foreground' : 'text-muted-foreground'}
+                    />
+                  </Pressable>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar &quot;{list.name}&quot;?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Se eliminarán todas las categorías y artículos de esta lista. Esta acción no se puede
+                      deshacer.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>
+                      <Text>Cancelar</Text>
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onPress={() => onDelete(list.id)}
+                      className="bg-destructive active:bg-destructive/90"
+                    >
+                      <Text className="text-white">Eliminar</Text>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </View>
           )
         )}
       </Sortable.Flex>
