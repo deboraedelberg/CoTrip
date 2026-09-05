@@ -98,6 +98,7 @@ export function useItems(packingListId: string | null) {
       .single();
 
     if (error || !data) {
+      console.error('addItem failed', error);
       setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
       return;
     }
@@ -125,6 +126,7 @@ export function useItems(packingListId: string | null) {
       .single();
 
     if (error || !data) {
+      console.error('retryAdd failed', error);
       setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
       return;
     }
