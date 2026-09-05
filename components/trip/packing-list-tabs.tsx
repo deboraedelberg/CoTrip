@@ -63,7 +63,7 @@ export function PackingListTabs({
       horizontal
       showsHorizontalScrollIndicator={false}
       className="flex-none border-b border-border"
-      contentContainerClassName="flex-row items-center gap-2 px-4 py-2"
+      contentContainerClassName="flex-row items-center gap-2 px-4 pt-4 pb-2"
     >
       <Sortable.Flex flexDirection="row" gap={8} onOrderChange={({ indexToKey }) => onReorder(indexToKey)}>
         {lists.map((list) =>
