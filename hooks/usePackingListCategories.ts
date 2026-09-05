@@ -111,6 +111,7 @@ export function usePackingListCategories(packingListId: string | null) {
       .single();
 
     if (error || !data) {
+      console.error('renameCategory failed', error);
       setCategories((prev) => prev.map((c) => (c.id === id ? previous : c)));
       return { error };
     }
@@ -123,7 +124,10 @@ export function usePackingListCategories(packingListId: string | null) {
     setCategories((prev) => prev.filter((c) => c.id !== id));
 
     const { error } = await supabase.from('packing_list_categories').delete().eq('id', id);
-    if (error) setCategories(previous);
+    if (error) {
+      console.error('deleteCategory failed', error);
+      setCategories(previous);
+    }
   }
 
   async function reorderCategories(orderedIds: string[]) {
