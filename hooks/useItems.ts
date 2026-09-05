@@ -62,16 +62,17 @@ export function useItems(packingListId: string | null) {
     };
   }, [packingListId, refresh]);
 
-  async function addItem(name: string, categoryId: string | null = null) {
+  async function addItem(name: string) {
     const trimmed = name.trim();
     if (!trimmed || !session || !packingListId) return;
 
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const position = items.filter((i) => i.category_id === categoryId).length;
+    const position = items.length;
     const optimistic: Item = {
       id: tempId,
       packing_list_id: packingListId,
-      category_id: categoryId,
+      assigned_to: null,
+      category: null,
       name: trimmed,
       quantity: 1,
       position,
@@ -89,7 +90,6 @@ export function useItems(packingListId: string | null) {
       .from('items')
       .insert({
         packing_list_id: packingListId,
-        category_id: categoryId,
         name: trimmed,
         position,
         created_by: session.user.id,
@@ -115,7 +115,8 @@ export function useItems(packingListId: string | null) {
       .from('items')
       .insert({
         packing_list_id: packingListId,
-        category_id: item.category_id,
+        category: item.category,
+        assigned_to: item.assigned_to,
         name: item.name,
         position: item.position,
         created_by: session.user.id,
@@ -214,6 +215,51 @@ export function useItems(packingListId: string | null) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
   }
 
+  async function setAssignedTo(id: string, userId: string | null) {
+    const previous = items.find((i) => i.id === id);
+    if (!previous) return;
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, assigned_to: userId, _status: 'pending' } : i)));
+
+    const { data, error } = await supabase
+      .from('items')
+      .update({ assigned_to: userId })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('setAssignedTo failed', error);
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...previous, _status: 'error' } : i)));
+      return;
+    }
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
+  }
+
+  async function setCategory(id: string, category: string | null) {
+    const trimmed = category?.trim() || null;
+    const previous = items.find((i) => i.id === id);
+    if (!previous) return;
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, category: trimmed, _status: 'pending' } : i)));
+
+    const { data, error } = await supabase
+      .from('items')
+      .update({ category: trimmed })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('setCategory failed', error);
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...previous, _status: 'error' } : i)));
+      return;
+    }
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
+  }
+
   async function deleteItem(id: string) {
     const previous = items;
     setItems((prev) => prev.filter((i) => i.id !== id));
@@ -224,22 +270,20 @@ export function useItems(packingListId: string | null) {
     if (error) setItems(previous);
   }
 
-  /** Reorders items within a single category (or the uncategorized bucket, id = null). */
-  async function reorderItems(categoryId: string | null, orderedIds: string[]) {
+  /** Reorders items within the list. Only meaningful in the flat (ungrouped) view. */
+  async function reorderItems(orderedIds: string[]) {
     const previous = items;
     const byId = new Map(previous.map((i) => [i.id, i]));
-    const reorderedIds = new Set(orderedIds);
-    const reorderedInScope = orderedIds
+    const reordered = orderedIds
       .map((id, index) => {
         const item = byId.get(id);
-        return item && item.category_id === categoryId ? { ...item, position: index } : null;
+        return item ? { ...item, position: index } : null;
       })
       .filter((i): i is Item => i !== null);
-    const rest = previous.filter((i) => !reorderedIds.has(i.id));
-    setItems([...rest, ...reorderedInScope]);
+    setItems(reordered);
 
     const results = await Promise.all(
-      reorderedInScope.map((i) => supabase.from('items').update({ position: i.position }).eq('id', i.id))
+      reordered.map((i) => supabase.from('items').update({ position: i.position }).eq('id', i.id))
     );
     if (results.some((r) => r.error)) setItems(previous);
   }
@@ -252,6 +296,8 @@ export function useItems(packingListId: string | null) {
     togglePacked,
     renameItem,
     setQuantity,
+    setAssignedTo,
+    setCategory,
     deleteItem,
     reorderItems,
   };

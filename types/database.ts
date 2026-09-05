@@ -76,7 +76,8 @@ export interface Database {
         Row: {
           id: string;
           packing_list_id: string;
-          category_id: string | null;
+          assigned_to: string | null;
+          category: string | null;
           name: string;
           quantity: number;
           position: number;
@@ -93,23 +94,6 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['items']['Row']>;
-        Relationships: [];
-      };
-      packing_list_categories: {
-        Row: {
-          id: string;
-          packing_list_id: string;
-          name: string;
-          position: number;
-          created_by: string;
-          created_at: string;
-        };
-        Insert: Partial<Database['public']['Tables']['packing_list_categories']['Row']> & {
-          packing_list_id: string;
-          name: string;
-          created_by: string;
-        };
-        Update: Partial<Database['public']['Tables']['packing_list_categories']['Row']>;
         Relationships: [];
       };
       invites: {
