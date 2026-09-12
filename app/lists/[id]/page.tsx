@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/types/database';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ListMemberRole = Database['public']['Tables']['list_members']['Row']['role'];
 
 export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,12 +29,16 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
 
   const { data: memberRows } = await supabase
     .from('list_members')
-    .select('user_id, profile:profiles(id, name, email, avatar_url)')
+    .select('user_id, role, profile:profiles(id, name, email, avatar_url)')
     .eq('list_id', id);
 
-  const members = ((memberRows ?? []) as unknown as { user_id: string; profile: Profile | null }[])
-    .map((m) => m.profile)
-    .filter((p): p is Profile => !!p);
+  const typedMemberRows = (memberRows ?? []) as unknown as {
+    user_id: string;
+    role: ListMemberRole;
+    profile: Profile | null;
+  }[];
+  const members = typedMemberRows.map((m) => m.profile).filter((p): p is Profile => !!p);
+  const isOwner = typedMemberRows.some((m) => m.user_id === user.id && m.role === 'owner');
 
   const { data: invites } = await supabase
     .from('invites')
@@ -48,6 +53,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
       members={members}
       initialInvites={invites ?? []}
       currentUserId={user.id}
+      isOwner={isOwner}
     />
   );
 }
