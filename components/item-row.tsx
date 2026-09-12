@@ -38,7 +38,7 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border px-1 py-2">
+    <div className="flex flex-nowrap items-center gap-1.5 border-b border-border px-1 py-2">
       <Checkbox checked={item.is_packed} onCheckedChange={onTogglePacked} />
       <Input
         value={editingName ? draftName : item.name}
@@ -52,7 +52,7 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
           if (e.key === 'Enter') e.currentTarget.blur();
         }}
         className={cn(
-          'h-8 min-w-28 flex-1 text-sm',
+          'h-8 min-w-0 flex-1 text-sm',
           item.is_packed && 'text-muted-foreground line-through opacity-60'
         )}
       />
@@ -69,7 +69,7 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
         onKeyDown={(e) => {
           if (e.key === 'Enter') e.currentTarget.blur();
         }}
-        className="h-8 w-14 shrink-0 px-1 text-center text-sm"
+        className="h-8 w-11 shrink-0 px-1 text-center text-sm"
       />
       <Combobox
         value={item.category ?? ''}
@@ -77,19 +77,24 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
         placeholder="Categoría"
         clearLabel="Sin categoría"
         onChange={(v) => onUpdate({ category: v || null })}
-        className="w-28 shrink-0"
+        className="w-20 shrink-0"
       />
       <Combobox
+        variant="avatar"
         value={item.assigned_to ?? ''}
         options={assigneeOptions}
         placeholder="Para quién"
         clearLabel="Sin asignar"
         onChange={(v) => onUpdate({ assigned_to: v || null })}
-        className="w-28 shrink-0"
       />
-      {item._status === 'pending' ? <span className="size-2 rounded-full bg-muted-foreground" /> : null}
-      {item._status === 'error' ? <span className="text-destructive text-xs">error</span> : null}
-      <Button variant="ghost" size="icon-sm" className="text-muted-foreground" onClick={onDelete}>
+      {item._status === 'pending' ? <span className="size-2 shrink-0 rounded-full bg-muted-foreground" /> : null}
+      {item._status === 'error' ? <span className="text-destructive shrink-0 text-xs">error</span> : null}
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="text-muted-foreground shrink-0"
+        onClick={onDelete}
+      >
         <Trash2 className="size-4" />
       </Button>
     </div>

@@ -1,7 +1,9 @@
 'use client';
 
+import { Plus } from 'lucide-react';
 import * as React from 'react';
 
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 interface ComboboxProps {
@@ -11,12 +13,23 @@ interface ComboboxProps {
   clearLabel?: string;
   onChange: (value: string) => void;
   className?: string;
+  /** 'input' shows the value as a text field; 'avatar' shows a compact avatar trigger (for assignee). */
+  variant?: 'input' | 'avatar';
 }
 
-export function Combobox({ value, options, placeholder, clearLabel = 'Ninguno', onChange, className }: ComboboxProps) {
+export function Combobox({
+  value,
+  options,
+  placeholder,
+  clearLabel = 'Ninguno',
+  onChange,
+  className,
+  variant = 'input',
+}: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState(value);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   function openWithCurrentValue() {
     setQuery(value);
@@ -31,6 +44,7 @@ export function Combobox({ value, options, placeholder, clearLabel = 'Ninguno', 
 
   React.useEffect(() => {
     if (!open) return;
+    if (variant === 'avatar') inputRef.current?.focus();
     function handlePointerDown(e: PointerEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         commit(query);
@@ -45,6 +59,80 @@ export function Combobox({ value, options, placeholder, clearLabel = 'Ninguno', 
   const filtered = options.filter((o) => o.toLowerCase().includes(normalizedQuery));
   const exactMatch = options.some((o) => o.toLowerCase() === normalizedQuery);
   const showCreate = query.trim() && !exactMatch;
+
+  const optionsList = (
+    <div
+      className={cn(
+        'absolute z-10 mt-1 max-h-48 w-max min-w-full overflow-auto rounded-2xl border border-border bg-popover p-1 shadow-md',
+        variant === 'avatar' ? 'right-0' : 'left-0'
+      )}
+    >
+      {variant === 'avatar' ? (
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit(query);
+            }
+            if (e.key === 'Escape') {
+              setQuery(value);
+              setOpen(false);
+            }
+          }}
+          placeholder={placeholder}
+          className="mb-1 h-8 w-full rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        />
+      ) : null}
+      <button
+        type="button"
+        className="block w-full rounded-lg px-2 py-1 text-left text-xs text-muted-foreground hover:bg-muted"
+        onClick={() => commit('')}
+      >
+        {clearLabel}
+      </button>
+      {filtered.map((o) => (
+        <button
+          key={o}
+          type="button"
+          className="block w-full rounded-lg px-2 py-1 text-left text-xs hover:bg-muted"
+          onClick={() => commit(o)}
+        >
+          {o}
+        </button>
+      ))}
+      {showCreate ? (
+        <button
+          type="button"
+          className="block w-full rounded-lg px-2 py-1 text-left text-xs text-primary hover:bg-muted"
+          onClick={() => commit(query)}
+        >
+          Crear &ldquo;{query.trim()}&rdquo;
+        </button>
+      ) : null}
+    </div>
+  );
+
+  if (variant === 'avatar') {
+    return (
+      <div ref={wrapperRef} className={cn('relative shrink-0', className)}>
+        <button type="button" onClick={openWithCurrentValue} title={value || placeholder}>
+          <Avatar size="sm">
+            {value ? (
+              <AvatarFallback>{value.trim().slice(0, 1).toUpperCase()}</AvatarFallback>
+            ) : (
+              <AvatarFallback>
+                <Plus className="size-3.5" />
+              </AvatarFallback>
+            )}
+          </Avatar>
+        </button>
+        {open ? optionsList : null}
+      </div>
+    );
+  }
 
   return (
     <div ref={wrapperRef} className={cn('relative', className)}>
@@ -65,36 +153,7 @@ export function Combobox({ value, options, placeholder, clearLabel = 'Ninguno', 
         placeholder={placeholder}
         className="h-8 w-full rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
       />
-      {open ? (
-        <div className="absolute z-10 mt-1 max-h-48 w-max min-w-full overflow-auto rounded-2xl border border-border bg-popover p-1 shadow-md">
-          <button
-            type="button"
-            className="block w-full rounded-lg px-2 py-1 text-left text-xs text-muted-foreground hover:bg-muted"
-            onClick={() => commit('')}
-          >
-            {clearLabel}
-          </button>
-          {filtered.map((o) => (
-            <button
-              key={o}
-              type="button"
-              className="block w-full rounded-lg px-2 py-1 text-left text-xs hover:bg-muted"
-              onClick={() => commit(o)}
-            >
-              {o}
-            </button>
-          ))}
-          {showCreate ? (
-            <button
-              type="button"
-              className="block w-full rounded-lg px-2 py-1 text-left text-xs text-primary hover:bg-muted"
-              onClick={() => commit(query)}
-            >
-              Crear &ldquo;{query.trim()}&rdquo;
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      {open ? optionsList : null}
     </div>
   );
 }
