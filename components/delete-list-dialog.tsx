@@ -32,9 +32,15 @@ export function DeleteListDialog({ listId, listName }: DeleteListDialogProps) {
     setDeleting(true);
     setError(null);
     const supabase = createClient();
-    const { error: deleteError } = await supabase.from('lists').delete().eq('id', listId);
-    if (deleteError) {
-      setError('No se pudo eliminar la lista.');
+    const { data, error: deleteError } = await supabase
+      .from('lists')
+      .delete()
+      .eq('id', listId)
+      .select('id');
+
+    if (deleteError || !data || data.length === 0) {
+      console.error('delete list failed', deleteError);
+      setError('No se pudo eliminar la lista. Puede que no tengas permiso.');
       setDeleting(false);
       return;
     }
