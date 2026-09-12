@@ -11,6 +11,7 @@ import { ItemRow } from '@/components/item-row';
 import { QuickAddItemInput } from '@/components/quick-add-item-input';
 import { useItems } from '@/hooks/useItems';
 import { createClient } from '@/lib/supabase/client';
+import { parseItemLine } from '@/lib/parse-item-input';
 import type { Database } from '@/types/database';
 
 type List = Database['public']['Tables']['lists']['Row'];
@@ -37,7 +38,7 @@ export function ListView({
   currentUserId,
   isOwner,
 }: ListViewProps) {
-  const { items, addItem, togglePacked, updateItem, deleteItem } = useItems(
+  const { items, addItems, togglePacked, updateItem, deleteItem } = useItems(
     list.id,
     initialItems,
     currentUserId
@@ -74,6 +75,14 @@ export function ListView({
       else next.add(key);
       return next;
     });
+  }
+
+  function handleAddItems(raw: string) {
+    const lines = raw
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    addItems(lines.map((line) => parseItemLine(line, categoryOptions, assigneeOptions)));
   }
 
   async function handleRename(newName: string) {
@@ -164,7 +173,7 @@ export function ListView({
         ) : null}
       </div>
 
-      <QuickAddItemInput onSubmit={addItem} />
+      <QuickAddItemInput onSubmit={handleAddItems} />
     </div>
   );
 }

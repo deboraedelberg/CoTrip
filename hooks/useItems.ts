@@ -3,6 +3,7 @@
 import * as React from 'react';
 
 import { createClient } from '@/lib/supabase/client';
+import type { ParsedItemLine } from '@/lib/parse-item-input';
 import type { Database } from '@/types/database';
 
 type ItemRow = Database['public']['Tables']['items']['Row'];
@@ -43,52 +44,60 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     };
   }, [listId]);
 
-  async function addItem(name: string) {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
+  async function addItems(lines: ParsedItemLine[]) {
     const supabase = createClient();
     const last = items[items.length - 1] as Item | undefined;
-    const defaultCategory = last?.category ?? null;
-    const defaultAssignedTo = last?.assigned_to ?? null;
+    let lastCategory = last?.category ?? null;
+    let lastAssignedTo = last?.assigned_to ?? null;
 
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const optimistic: Item = {
-      id: tempId,
-      list_id: listId,
-      name: trimmed,
-      quantity: 1,
-      category: defaultCategory,
-      assigned_to: defaultAssignedTo,
-      is_packed: false,
-      packed_by: null,
-      packed_at: null,
-      created_by: userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      _status: 'pending',
-    };
-    setItems((prev) => [...prev, optimistic]);
+    for (const line of lines) {
+      const trimmed = line.name.trim();
+      if (!trimmed) continue;
 
-    const { data, error } = await supabase
-      .from('items')
-      .insert({
+      const category = line.category !== undefined ? line.category : lastCategory;
+      const assignedTo = line.assigned_to !== undefined ? line.assigned_to : lastAssignedTo;
+      lastCategory = category;
+      lastAssignedTo = assignedTo;
+
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimistic: Item = {
+        id: tempId,
         list_id: listId,
         name: trimmed,
+        quantity: line.quantity,
+        category,
+        assigned_to: assignedTo,
+        is_packed: false,
+        packed_by: null,
+        packed_at: null,
         created_by: userId,
-        category: defaultCategory,
-        assigned_to: defaultAssignedTo,
-      })
-      .select()
-      .single();
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        _status: 'pending',
+      };
+      setItems((prev) => [...prev, optimistic]);
 
-    if (error || !data) {
-      console.error('addItem failed', error);
-      setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
-      return;
+      const { data, error } = await supabase
+        .from('items')
+        .insert({
+          list_id: listId,
+          name: trimmed,
+          quantity: line.quantity,
+          created_by: userId,
+          category,
+          assigned_to: assignedTo,
+        })
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error('addItem failed', error);
+        setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
+        continue;
+      }
+
+      setItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
     }
-
-    setItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
   }
 
   async function togglePacked(id: string) {
@@ -135,5 +144,5 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     }
   }
 
-  return { items, addItem, togglePacked, updateItem, deleteItem };
+  return { items, addItems, togglePacked, updateItem, deleteItem };
 }
