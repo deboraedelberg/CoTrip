@@ -198,19 +198,18 @@ export function ListView({
             ) : null}
           </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground w-24 shrink-0 text-xs">Ordenar por</span>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="h-8 flex-1 rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <option value="added">Orden de agregado</option>
-          <option value="person-category">Persona &gt; Categoría</option>
-          <option value="category-person">Categoría &gt; Persona</option>
-        </select>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground w-24 shrink-0 text-xs">Ordenar por</span>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="h-8 flex-1 rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <option value="added">Orden de agregado</option>
+            <option value="person-category">Persona &gt; Categoría</option>
+            <option value="category-person">Categoría &gt; Persona</option>
+          </select>
+        </div>
       </div>
 
       <div className="flex flex-col">
