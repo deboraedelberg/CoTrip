@@ -70,6 +70,7 @@ export interface Database {
           name: string;
           quantity: number;
           category: string | null;
+          /** Freeform name, not a profiles.id — the assignee may not have an account. */
           assigned_to: string | null;
           is_packed: boolean;
           packed_by: string | null;

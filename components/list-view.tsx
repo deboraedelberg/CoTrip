@@ -32,8 +32,16 @@ export function ListView({ list, initialItems, members, initialInvites, currentU
   );
   const [name, setName] = React.useState(list.name);
   const packedCount = items.filter((i) => i.is_packed).length;
-  const categorySuggestions = Array.from(
+  const categoryOptions = Array.from(
     new Set(items.map((i) => i.category).filter((c): c is string => !!c))
+  );
+  const assigneeOptions = Array.from(
+    new Set(
+      [
+        ...members.map((m) => m.name ?? m.email ?? '').filter(Boolean),
+        ...items.map((i) => i.assigned_to).filter((a): a is string => !!a),
+      ]
+    )
   );
 
   async function handleRename(newName: string) {
@@ -70,8 +78,8 @@ export function ListView({ list, initialItems, members, initialInvites, currentU
           <ItemRow
             key={item.id}
             item={item}
-            members={members}
-            categorySuggestions={categorySuggestions}
+            categoryOptions={categoryOptions}
+            assigneeOptions={assigneeOptions}
             onTogglePacked={() => togglePacked(item.id)}
             onUpdate={(patch) => updateItem(item.id, patch)}
             onDelete={() => deleteItem(item.id)}

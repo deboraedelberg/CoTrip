@@ -48,14 +48,18 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     if (!trimmed) return;
 
     const supabase = createClient();
+    const last = items[items.length - 1] as Item | undefined;
+    const defaultCategory = last?.category ?? null;
+    const defaultAssignedTo = last?.assigned_to ?? null;
+
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimistic: Item = {
       id: tempId,
       list_id: listId,
       name: trimmed,
       quantity: 1,
-      category: null,
-      assigned_to: null,
+      category: defaultCategory,
+      assigned_to: defaultAssignedTo,
       is_packed: false,
       packed_by: null,
       packed_at: null,
@@ -68,7 +72,13 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
 
     const { data, error } = await supabase
       .from('items')
-      .insert({ list_id: listId, name: trimmed, created_by: userId })
+      .insert({
+        list_id: listId,
+        name: trimmed,
+        created_by: userId,
+        category: defaultCategory,
+        assigned_to: defaultAssignedTo,
+      })
       .select()
       .single();
 
