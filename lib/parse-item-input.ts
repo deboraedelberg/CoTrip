@@ -8,7 +8,10 @@ export interface ParsedItemLine {
 /**
  * Parses one quick-add line like "Remeras, 5, Todos, Ropa" (any order).
  * A segment is quantity if numeric, category/assignee if it matches an
- * existing option (case-insensitive); anything left over becomes the name.
+ * existing option (case-insensitive) — this part works in any order.
+ * Segments that don't match anything existing (new categories/assignees
+ * are allowed) fall back to positional order: name, then person, then
+ * category, matching the example order above.
  */
 export function parseItemLine(
   line: string,
@@ -30,7 +33,7 @@ export function parseItemLine(
   let quantity: number | null = null;
   let category: string | undefined;
   let assignedTo: string | undefined;
-  const remaining: string[] = [];
+  const leftover: string[] = [];
 
   for (const segment of segments) {
     const asNumber = Number(segment);
@@ -47,11 +50,16 @@ export function parseItemLine(
       assignedTo = assigneeByLower.get(lower);
       continue;
     }
-    remaining.push(segment);
+    leftover.push(segment);
   }
 
+  const name = leftover.shift() ?? segments[0];
+  if (assignedTo === undefined) assignedTo = leftover.shift();
+  if (category === undefined) category = leftover.shift();
+  const extraName = leftover.length > 0 ? `, ${leftover.join(', ')}` : '';
+
   return {
-    name: remaining.length > 0 ? remaining.join(', ') : segments[0],
+    name: name + extraName,
     quantity: quantity ?? 1,
     category,
     assigned_to: assignedTo,
