@@ -289,6 +289,8 @@ export function ListView({
                             onUpdate={(patch) => updateItem(item.id, patch)}
                             onDuplicate={() => duplicateItem(item.id)}
                             onDelete={() => deleteItem(item.id)}
+                            hideCategory
+                            hideAssignee
                           />
                         ))}
                       </div>
