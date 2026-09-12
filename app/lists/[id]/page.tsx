@@ -2,6 +2,9 @@ import { notFound, redirect } from 'next/navigation';
 
 import { ListView } from '@/components/list-view';
 import { createClient } from '@/lib/supabase/server';
+import type { Database } from '@/types/database';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export default async function ListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,5 +26,28 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
     .eq('list_id', id)
     .order('created_at', { ascending: true });
 
-  return <ListView list={list} initialItems={items ?? []} currentUserId={user.id} />;
+  const { data: memberRows } = await supabase
+    .from('list_members')
+    .select('user_id, profile:profiles(id, name, email, avatar_url)')
+    .eq('list_id', id);
+
+  const members = ((memberRows ?? []) as unknown as { user_id: string; profile: Profile | null }[])
+    .map((m) => m.profile)
+    .filter((p): p is Profile => !!p);
+
+  const { data: invites } = await supabase
+    .from('invites')
+    .select('*')
+    .eq('list_id', id)
+    .eq('status', 'pending');
+
+  return (
+    <ListView
+      list={list}
+      initialItems={items ?? []}
+      members={members}
+      initialInvites={invites ?? []}
+      currentUserId={user.id}
+    />
+  );
 }

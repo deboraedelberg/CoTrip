@@ -82,39 +82,28 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
   }
 
   async function togglePacked(id: string) {
-    const supabase = createClient();
     const item = items.find((i) => i.id === id);
     if (!item) return;
 
-    const previous = item;
     const nextPacked = !item.is_packed;
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              is_packed: nextPacked,
-              packed_by: nextPacked ? userId : null,
-              packed_at: nextPacked ? new Date().toISOString() : null,
-              _status: 'pending',
-            }
-          : i
-      )
-    );
+    await updateItem(id, {
+      is_packed: nextPacked,
+      packed_by: nextPacked ? userId : null,
+      packed_at: nextPacked ? new Date().toISOString() : null,
+    });
+  }
 
-    const { data, error } = await supabase
-      .from('items')
-      .update({
-        is_packed: nextPacked,
-        packed_by: nextPacked ? userId : null,
-        packed_at: nextPacked ? new Date().toISOString() : null,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+  async function updateItem(id: string, patch: Partial<ItemRow>) {
+    const supabase = createClient();
+    const previous = items.find((i) => i.id === id);
+    if (!previous) return;
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, _status: 'pending' } : i)));
+
+    const { data, error } = await supabase.from('items').update(patch).eq('id', id).select().single();
 
     if (error || !data) {
-      console.error('togglePacked failed', error);
+      console.error('updateItem failed', error);
       setItems((prev) => prev.map((i) => (i.id === id ? { ...previous, _status: 'error' } : i)));
       return;
     }
@@ -136,5 +125,5 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     }
   }
 
-  return { items, addItem, togglePacked, deleteItem };
+  return { items, addItem, togglePacked, updateItem, deleteItem };
 }
