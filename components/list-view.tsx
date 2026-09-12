@@ -20,6 +20,27 @@ type Profile = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'nam
 type Invite = Database['public']['Tables']['invites']['Row'];
 
 const UNASSIGNED = '__unassigned__';
+const SIN_ASIGNAR = 'Sin asignar';
+const SIN_CATEGORIA = 'Sin categoría';
+
+type SortBy = 'added' | 'person' | 'category';
+
+function groupItems<T>(items: T[], keyFn: (item: T) => string | null, fallbackLabel: string) {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyFn(item) ?? fallbackLabel;
+    const group = groups.get(key);
+    if (group) group.push(item);
+    else groups.set(key, [item]);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => {
+      if (a === fallbackLabel) return 1;
+      if (b === fallbackLabel) return -1;
+      return a.localeCompare(b);
+    })
+    .map(([label, groupItems]) => ({ label, items: groupItems }));
+}
 
 interface ListViewProps {
   list: List;
@@ -47,6 +68,7 @@ export function ListView({
   const [invites, setInvites] = React.useState(initialInvites);
   const [categoryFilter, setCategoryFilter] = React.useState('all');
   const [excludedAssignees, setExcludedAssignees] = React.useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = React.useState<SortBy>('added');
 
   const packedCount = items.filter((i) => i.is_packed).length;
   const categoryOptions = Array.from(
@@ -62,11 +84,20 @@ export function ListView({
     )
   );
 
+  const hasUnassignedItems = items.some((i) => !i.assigned_to);
+
   const filteredItems = items.filter((i) => {
     if (categoryFilter !== 'all' && (i.category ?? '') !== categoryFilter) return false;
     if (excludedAssignees.has(i.assigned_to ?? UNASSIGNED)) return false;
     return true;
   });
+
+  const groups =
+    sortBy === 'person'
+      ? groupItems(filteredItems, (i) => i.assigned_to, SIN_ASIGNAR)
+      : sortBy === 'category'
+        ? groupItems(filteredItems, (i) => i.category, SIN_CATEGORIA)
+        : null;
 
   function toggleAssignee(key: string) {
     setExcludedAssignees((prev) => {
@@ -143,29 +174,63 @@ export function ListView({
                 {a}
               </label>
             ))}
-            <label className="flex items-center gap-1.5 text-xs">
-              <Checkbox
-                checked={!excludedAssignees.has(UNASSIGNED)}
-                onCheckedChange={() => toggleAssignee(UNASSIGNED)}
-              />
-              Sin asignar
-            </label>
+            {hasUnassignedItems ? (
+              <label className="flex items-center gap-1.5 text-xs">
+                <Checkbox
+                  checked={!excludedAssignees.has(UNASSIGNED)}
+                  onCheckedChange={() => toggleAssignee(UNASSIGNED)}
+                />
+                {SIN_ASIGNAR}
+              </label>
+            ) : null}
           </div>
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground w-24 shrink-0 text-xs">Ordenar por</span>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as SortBy)}
+          className="h-8 flex-1 rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <option value="added">Agregado</option>
+          <option value="person">Persona</option>
+          <option value="category">Categoría</option>
+        </select>
+      </div>
+
       <div className="flex flex-col">
-        {filteredItems.map((item) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            categoryOptions={categoryOptions}
-            assigneeOptions={assigneeOptions}
-            onTogglePacked={() => togglePacked(item.id)}
-            onUpdate={(patch) => updateItem(item.id, patch)}
-            onDelete={() => deleteItem(item.id)}
-          />
-        ))}
+        {groups
+          ? groups.map((group) => (
+              <div key={group.label} className="flex flex-col">
+                <h2 className="text-muted-foreground mt-3 px-1 text-xs font-semibold uppercase first:mt-0">
+                  {group.label}
+                </h2>
+                {group.items.map((item) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    categoryOptions={categoryOptions}
+                    assigneeOptions={assigneeOptions}
+                    onTogglePacked={() => togglePacked(item.id)}
+                    onUpdate={(patch) => updateItem(item.id, patch)}
+                    onDelete={() => deleteItem(item.id)}
+                  />
+                ))}
+              </div>
+            ))
+          : filteredItems.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                categoryOptions={categoryOptions}
+                assigneeOptions={assigneeOptions}
+                onTogglePacked={() => togglePacked(item.id)}
+                onUpdate={(patch) => updateItem(item.id, patch)}
+                onDelete={() => deleteItem(item.id)}
+              />
+            ))}
         {filteredItems.length === 0 && items.length > 0 ? (
           <p className="text-muted-foreground py-4 text-center text-sm">
             Ningún item coincide con estos filtros.
