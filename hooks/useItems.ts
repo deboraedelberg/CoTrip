@@ -130,6 +130,46 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     setItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
   }
 
+  async function duplicateItem(id: string) {
+    const source = items.find((i) => i.id === id);
+    if (!source) return;
+
+    const supabase = createClient();
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimistic: Item = {
+      ...source,
+      id: tempId,
+      is_packed: false,
+      packed_by: null,
+      packed_at: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      _status: 'pending',
+    };
+    setItems((prev) => [...prev, optimistic]);
+
+    const { data, error } = await supabase
+      .from('items')
+      .insert({
+        list_id: listId,
+        name: source.name,
+        quantity: source.quantity,
+        category: source.category,
+        assigned_to: source.assigned_to,
+        created_by: userId,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      console.error('duplicateItem failed', error);
+      setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
+      return;
+    }
+
+    setItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
+  }
+
   async function deleteItem(id: string) {
     const supabase = createClient();
     const previous = items;
@@ -144,5 +184,5 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     }
   }
 
-  return { items, addItems, togglePacked, updateItem, deleteItem };
+  return { items, addItems, togglePacked, updateItem, duplicateItem, deleteItem };
 }

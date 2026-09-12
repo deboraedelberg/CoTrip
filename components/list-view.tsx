@@ -12,6 +12,7 @@ import { QuickAddItemInput } from '@/components/quick-add-item-input';
 import { useItems } from '@/hooks/useItems';
 import { createClient } from '@/lib/supabase/client';
 import { parseItemLine } from '@/lib/parse-item-input';
+import { cn } from '@/lib/utils';
 import type { Database } from '@/types/database';
 
 type List = Database['public']['Tables']['lists']['Row'];
@@ -72,7 +73,7 @@ export function ListView({
   currentUserId,
   isOwner,
 }: ListViewProps) {
-  const { items, addItems, togglePacked, updateItem, deleteItem } = useItems(
+  const { items, addItems, togglePacked, updateItem, duplicateItem, deleteItem } = useItems(
     list.id,
     initialItems,
     currentUserId
@@ -82,6 +83,7 @@ export function ListView({
   const [categoryFilter, setCategoryFilter] = React.useState('all');
   const [excludedAssignees, setExcludedAssignees] = React.useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = React.useState<SortBy>('added');
+  const [dragOverZone, setDragOverZone] = React.useState<string | null>(null);
 
   const packedCount = items.filter((i) => i.is_packed).length;
   const categoryOptions = Array.from(
@@ -111,6 +113,24 @@ export function ListView({
       : sortBy === 'category-person'
         ? groupItemsTwoLevel(filteredItems, (i) => i.category, SIN_CATEGORIA, (i) => i.assigned_to, SIN_ASIGNAR)
         : null;
+
+  // Which field a drop onto the primary vs. secondary zone should change,
+  // depending on which one currently represents person vs. category.
+  const primaryField: 'assigned_to' | 'category' = sortBy === 'category-person' ? 'category' : 'assigned_to';
+  const primaryFallback = sortBy === 'category-person' ? SIN_CATEGORIA : SIN_ASIGNAR;
+  const secondaryField: 'assigned_to' | 'category' = sortBy === 'category-person' ? 'assigned_to' : 'category';
+  const secondaryFallback = sortBy === 'category-person' ? SIN_ASIGNAR : SIN_CATEGORIA;
+
+  function handleDropOnZone(zoneKey: string, field: 'assigned_to' | 'category', label: string, fallback: string) {
+    return (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setDragOverZone((z) => (z === zoneKey ? null : z));
+      const itemId = e.dataTransfer.getData('text/plain');
+      if (!itemId) return;
+      const value = label === fallback ? null : label;
+      updateItem(itemId, { [field]: value } as Partial<ItemRowType>);
+    };
+  }
 
   function toggleAssignee(key: string) {
     setExcludedAssignees((prev) => {
@@ -214,31 +234,69 @@ export function ListView({
 
       <div className="flex flex-col">
         {groups
-          ? groups.map((group) => (
-              <div key={group.label} className="flex flex-col">
-                <h2 className="text-foreground mt-6 px-1 text-sm font-semibold first:mt-0">
-                  {group.label}
-                </h2>
-                {group.subgroups.map((subgroup) => (
-                  <div key={subgroup.label} className="flex flex-col">
-                    <h3 className="text-muted-foreground mt-3 px-1 text-xs font-medium uppercase">
-                      {subgroup.label}
-                    </h3>
-                    {subgroup.items.map((item) => (
-                      <ItemRow
-                        key={item.id}
-                        item={item}
-                        categoryOptions={categoryOptions}
-                        assigneeOptions={assigneeOptions}
-                        onTogglePacked={() => togglePacked(item.id)}
-                        onUpdate={(patch) => updateItem(item.id, patch)}
-                        onDelete={() => deleteItem(item.id)}
-                      />
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ))
+          ? groups.map((group) => {
+              const primaryZoneKey = `primary:${group.label}`;
+              return (
+                <div
+                  key={group.label}
+                  className={cn(
+                    'flex flex-col rounded-xl transition-colors',
+                    dragOverZone === primaryZoneKey && 'bg-muted/60'
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverZone(primaryZoneKey);
+                  }}
+                  onDragLeave={() => setDragOverZone((z) => (z === primaryZoneKey ? null : z))}
+                  onDrop={handleDropOnZone(primaryZoneKey, primaryField, group.label, primaryFallback)}
+                >
+                  <h2 className="text-foreground mt-6 px-1 text-sm font-semibold first:mt-0">
+                    {group.label}
+                  </h2>
+                  {group.subgroups.map((subgroup) => {
+                    const secondaryZoneKey = `secondary:${group.label}:${subgroup.label}`;
+                    return (
+                      <div
+                        key={subgroup.label}
+                        className={cn(
+                          'flex flex-col rounded-xl transition-colors',
+                          dragOverZone === secondaryZoneKey && 'bg-muted/60'
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDragOverZone(secondaryZoneKey);
+                        }}
+                        onDragLeave={(e) => {
+                          e.stopPropagation();
+                          setDragOverZone((z) => (z === secondaryZoneKey ? null : z));
+                        }}
+                        onDrop={(e) => {
+                          e.stopPropagation();
+                          handleDropOnZone(secondaryZoneKey, secondaryField, subgroup.label, secondaryFallback)(e);
+                        }}
+                      >
+                        <h3 className="text-muted-foreground mt-3 px-1 text-xs font-medium uppercase">
+                          {subgroup.label}
+                        </h3>
+                        {subgroup.items.map((item) => (
+                          <ItemRow
+                            key={item.id}
+                            item={item}
+                            categoryOptions={categoryOptions}
+                            assigneeOptions={assigneeOptions}
+                            onTogglePacked={() => togglePacked(item.id)}
+                            onUpdate={(patch) => updateItem(item.id, patch)}
+                            onDuplicate={() => duplicateItem(item.id)}
+                            onDelete={() => deleteItem(item.id)}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
           : filteredItems.map((item) => (
               <ItemRow
                 key={item.id}
@@ -247,6 +305,7 @@ export function ListView({
                 assigneeOptions={assigneeOptions}
                 onTogglePacked={() => togglePacked(item.id)}
                 onUpdate={(patch) => updateItem(item.id, patch)}
+                onDuplicate={() => duplicateItem(item.id)}
                 onDelete={() => deleteItem(item.id)}
               />
             ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { Copy, GripVertical, Trash2 } from 'lucide-react';
 import * as React from 'react';
 
 import { Combobox } from '@/components/combobox';
@@ -16,10 +16,22 @@ interface ItemRowProps {
   assigneeOptions: string[];
   onTogglePacked: () => void;
   onUpdate: (patch: { name?: string; quantity?: number; category?: string | null; assigned_to?: string | null }) => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }
 
-export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked, onUpdate, onDelete }: ItemRowProps) {
+const ghostFieldClass =
+  'h-8 min-w-0 rounded-lg border border-transparent bg-transparent px-1.5 text-sm outline-none transition-colors hover:bg-muted/50 focus-visible:border-ring focus-visible:bg-input/30 focus-visible:ring-[3px] focus-visible:ring-ring/50';
+
+export function ItemRow({
+  item,
+  categoryOptions,
+  assigneeOptions,
+  onTogglePacked,
+  onUpdate,
+  onDuplicate,
+  onDelete,
+}: ItemRowProps) {
   const [editingName, setEditingName] = React.useState(false);
   const [draftName, setDraftName] = React.useState(item.name);
   const [editingQty, setEditingQty] = React.useState(false);
@@ -38,7 +50,14 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
   }
 
   return (
-    <div className="flex flex-nowrap items-center gap-1.5 border-b border-border px-1 py-2">
+    <div className="flex flex-nowrap items-center gap-1 border-b border-border px-1 py-1.5">
+      <span
+        className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
+        draggable
+        onDragStart={(e) => e.dataTransfer.setData('text/plain', item.id)}
+      >
+        <GripVertical className="text-muted-foreground/40 size-4" />
+      </span>
       <Checkbox checked={item.is_packed} onCheckedChange={onTogglePacked} />
       <Input
         value={editingName ? draftName : item.name}
@@ -52,7 +71,8 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
           if (e.key === 'Enter') e.currentTarget.blur();
         }}
         className={cn(
-          'h-8 min-w-0 flex-1 text-sm',
+          ghostFieldClass,
+          'min-w-28 flex-1',
           item.is_packed && 'text-muted-foreground line-through opacity-60'
         )}
       />
@@ -69,7 +89,7 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
         onKeyDown={(e) => {
           if (e.key === 'Enter') e.currentTarget.blur();
         }}
-        className="h-8 w-11 shrink-0 px-1 text-center text-sm"
+        className={cn(ghostFieldClass, 'w-11 shrink-0 px-1 text-center')}
       />
       <Combobox
         value={item.category ?? ''}
@@ -89,6 +109,9 @@ export function ItemRow({ item, categoryOptions, assigneeOptions, onTogglePacked
       />
       {item._status === 'pending' ? <span className="size-2 shrink-0 rounded-full bg-muted-foreground" /> : null}
       {item._status === 'error' ? <span className="text-destructive shrink-0 text-xs">error</span> : null}
+      <Button variant="ghost" size="icon-sm" className="text-muted-foreground shrink-0" onClick={onDuplicate}>
+        <Copy className="size-4" />
+      </Button>
       <Button
         variant="ghost"
         size="icon-sm"

@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { avatarColor } from '@/lib/avatar-color';
 import { createClient } from '@/lib/supabase/client';
 import type { Database } from '@/types/database';
 
@@ -52,16 +53,27 @@ export function InviteSection({ listId, members, invites, onInvited, currentUser
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        {members.map((m) => (
-          <Avatar key={m.id} size="sm" title={m.name ?? m.email ?? undefined}>
-            <AvatarFallback>{(m.name ?? m.email ?? '?').slice(0, 1).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        ))}
-        {invites.map((inv) => (
-          <Avatar key={inv.id} size="sm" className="after:border-dashed" title={`${inv.email} (pendiente)`}>
-            <AvatarFallback>{inv.email.slice(0, 1).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        ))}
+        {members.map((m) => {
+          const label = m.name ?? m.email ?? '?';
+          const color = avatarColor(label);
+          return (
+            <Avatar key={m.id} size="sm" title={label}>
+              <AvatarFallback className="font-semibold" style={{ backgroundColor: color.bg, color: color.fg }}>
+                {label.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          );
+        })}
+        {invites.map((inv) => {
+          const color = avatarColor(inv.email);
+          return (
+            <Avatar key={inv.id} size="sm" className="after:border-dashed" title={`${inv.email} (pendiente)`}>
+              <AvatarFallback className="font-semibold" style={{ backgroundColor: color.bg, color: color.fg }}>
+                {inv.email.slice(0, 1).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          );
+        })}
         <Button variant="outline" size="sm" onClick={() => setOpen((o) => !o)}>
           Invitar
         </Button>

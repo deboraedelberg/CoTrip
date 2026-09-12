@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import * as React from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { avatarColor } from '@/lib/avatar-color';
 import { cn } from '@/lib/utils';
 
 interface ComboboxProps {
@@ -116,12 +117,18 @@ export function Combobox({
   );
 
   if (variant === 'avatar') {
+    const color = value ? avatarColor(value) : null;
     return (
       <div ref={wrapperRef} className={cn('relative shrink-0', className)}>
         <button type="button" onClick={openWithCurrentValue} title={value || placeholder}>
           <Avatar size="sm">
-            {value ? (
-              <AvatarFallback>{value.trim().slice(0, 1).toUpperCase()}</AvatarFallback>
+            {value && color ? (
+              <AvatarFallback
+                className="font-semibold"
+                style={{ backgroundColor: color.bg, color: color.fg }}
+              >
+                {value.trim().slice(0, 1).toUpperCase()}
+              </AvatarFallback>
             ) : (
               <AvatarFallback>
                 <Plus className="size-3.5" />
@@ -151,7 +158,10 @@ export function Combobox({
           }
         }}
         placeholder={placeholder}
-        className="h-8 w-full rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        className={cn(
+          'h-8 w-full rounded-full border px-2.5 text-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+          open ? 'border-input bg-input/30' : 'border-transparent bg-transparent hover:bg-muted/50'
+        )}
       />
       {open ? optionsList : null}
     </div>
