@@ -23,7 +23,7 @@ const UNASSIGNED = '__unassigned__';
 const SIN_ASIGNAR = 'Sin asignar';
 const SIN_CATEGORIA = 'Sin categoría';
 
-type SortBy = 'added' | 'person' | 'category';
+type SortBy = 'added' | 'person-category' | 'category-person';
 
 function groupItems<T>(items: T[], keyFn: (item: T) => string | null, fallbackLabel: string) {
   const groups = new Map<string, T[]>();
@@ -40,6 +40,19 @@ function groupItems<T>(items: T[], keyFn: (item: T) => string | null, fallbackLa
       return a.localeCompare(b);
     })
     .map(([label, groupItems]) => ({ label, items: groupItems }));
+}
+
+function groupItemsTwoLevel<T>(
+  items: T[],
+  primaryKeyFn: (item: T) => string | null,
+  primaryFallback: string,
+  secondaryKeyFn: (item: T) => string | null,
+  secondaryFallback: string
+) {
+  return groupItems(items, primaryKeyFn, primaryFallback).map((group) => ({
+    label: group.label,
+    subgroups: groupItems(group.items, secondaryKeyFn, secondaryFallback),
+  }));
 }
 
 interface ListViewProps {
@@ -93,10 +106,10 @@ export function ListView({
   });
 
   const groups =
-    sortBy === 'person'
-      ? groupItems(filteredItems, (i) => i.assigned_to, SIN_ASIGNAR)
-      : sortBy === 'category'
-        ? groupItems(filteredItems, (i) => i.category, SIN_CATEGORIA)
+    sortBy === 'person-category'
+      ? groupItemsTwoLevel(filteredItems, (i) => i.assigned_to, SIN_ASIGNAR, (i) => i.category, SIN_CATEGORIA)
+      : sortBy === 'category-person'
+        ? groupItemsTwoLevel(filteredItems, (i) => i.category, SIN_CATEGORIA, (i) => i.assigned_to, SIN_ASIGNAR)
         : null;
 
   function toggleAssignee(key: string) {
@@ -194,9 +207,9 @@ export function ListView({
           onChange={(e) => setSortBy(e.target.value as SortBy)}
           className="h-8 flex-1 rounded-full border border-input bg-input/30 px-2.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <option value="added">Agregado</option>
-          <option value="person">Persona</option>
-          <option value="category">Categoría</option>
+          <option value="added">Orden de agregado</option>
+          <option value="person-category">Persona &gt; Categoría</option>
+          <option value="category-person">Categoría &gt; Persona</option>
         </select>
       </div>
 
@@ -204,19 +217,26 @@ export function ListView({
         {groups
           ? groups.map((group) => (
               <div key={group.label} className="flex flex-col">
-                <h2 className="text-muted-foreground mt-3 px-1 text-xs font-semibold uppercase first:mt-0">
+                <h2 className="text-foreground mt-4 px-1 text-sm font-semibold first:mt-0">
                   {group.label}
                 </h2>
-                {group.items.map((item) => (
-                  <ItemRow
-                    key={item.id}
-                    item={item}
-                    categoryOptions={categoryOptions}
-                    assigneeOptions={assigneeOptions}
-                    onTogglePacked={() => togglePacked(item.id)}
-                    onUpdate={(patch) => updateItem(item.id, patch)}
-                    onDelete={() => deleteItem(item.id)}
-                  />
+                {group.subgroups.map((subgroup) => (
+                  <div key={subgroup.label} className="flex flex-col">
+                    <h3 className="text-muted-foreground mt-2 px-1 text-xs font-medium uppercase">
+                      {subgroup.label}
+                    </h3>
+                    {subgroup.items.map((item) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        categoryOptions={categoryOptions}
+                        assigneeOptions={assigneeOptions}
+                        onTogglePacked={() => togglePacked(item.id)}
+                        onUpdate={(patch) => updateItem(item.id, patch)}
+                        onDelete={() => deleteItem(item.id)}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
             ))
