@@ -51,30 +51,20 @@ export function InviteSection({ listId, members, invites, onInvited, currentUser
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-sm">Miembros</span>
+      <div className="flex flex-wrap items-center gap-2">
+        {members.map((m) => (
+          <Avatar key={m.id} size="sm" title={m.name ?? m.email ?? undefined}>
+            <AvatarFallback>{(m.name ?? m.email ?? '?').slice(0, 1).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        ))}
+        {invites.map((inv) => (
+          <Avatar key={inv.id} size="sm" className="after:border-dashed" title={`${inv.email} (pendiente)`}>
+            <AvatarFallback>{inv.email.slice(0, 1).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        ))}
         <Button variant="outline" size="sm" onClick={() => setOpen((o) => !o)}>
           Invitar
         </Button>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {members.map((m) => (
-          <div key={m.id} className="flex items-center gap-1.5 rounded-full bg-muted px-2 py-1">
-            <Avatar size="sm">
-              <AvatarFallback>{(m.name ?? m.email ?? '?').slice(0, 1).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <span className="text-xs">{m.name ?? m.email}</span>
-          </div>
-        ))}
-        {invites.map((inv) => (
-          <div
-            key={inv.id}
-            className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-2 py-1"
-          >
-            <span className="text-muted-foreground text-xs">{inv.email} (pendiente)</span>
-          </div>
-        ))}
       </div>
 
       {open ? (
