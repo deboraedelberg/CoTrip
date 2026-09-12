@@ -217,12 +217,12 @@ export function ListView({
         {groups
           ? groups.map((group) => (
               <div key={group.label} className="flex flex-col">
-                <h2 className="text-foreground mt-4 px-1 text-sm font-semibold first:mt-0">
+                <h2 className="text-foreground mt-6 px-1 text-sm font-semibold first:mt-0">
                   {group.label}
                 </h2>
                 {group.subgroups.map((subgroup) => (
                   <div key={subgroup.label} className="flex flex-col">
-                    <h3 className="text-muted-foreground mt-2 px-1 text-xs font-medium uppercase">
+                    <h3 className="text-muted-foreground mt-3 px-1 text-xs font-medium uppercase">
                       {subgroup.label}
                     </h3>
                     {subgroup.items.map((item) => (
