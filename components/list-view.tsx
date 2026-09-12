@@ -43,6 +43,7 @@ export function ListView({
     currentUserId
   );
   const [name, setName] = React.useState(list.name);
+  const [invites, setInvites] = React.useState(initialInvites);
   const [categoryFilter, setCategoryFilter] = React.useState('all');
   const [excludedAssignees, setExcludedAssignees] = React.useState<Set<string>>(new Set());
 
@@ -54,6 +55,7 @@ export function ListView({
     new Set(
       [
         ...members.map((m) => m.name ?? m.email ?? '').filter(Boolean),
+        ...invites.map((i) => i.email),
         ...items.map((i) => i.assigned_to).filter((a): a is string => !!a),
       ]
     )
@@ -102,7 +104,8 @@ export function ListView({
       <InviteSection
         listId={list.id}
         members={members}
-        initialInvites={initialInvites}
+        invites={invites}
+        onInvited={(invite) => setInvites((prev) => [...prev, invite])}
         currentUserId={currentUserId}
       />
 

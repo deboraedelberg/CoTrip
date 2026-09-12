@@ -14,16 +14,16 @@ type Invite = Database['public']['Tables']['invites']['Row'];
 interface InviteSectionProps {
   listId: string;
   members: Profile[];
-  initialInvites: Invite[];
+  invites: Invite[];
+  onInvited: (invite: Invite) => void;
   currentUserId: string;
 }
 
-export function InviteSection({ listId, members, initialInvites, currentUserId }: InviteSectionProps) {
+export function InviteSection({ listId, members, invites, onInvited, currentUserId }: InviteSectionProps) {
   const [open, setOpen] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const [invites, setInvites] = React.useState(initialInvites);
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -45,7 +45,7 @@ export function InviteSection({ listId, members, initialInvites, currentUserId }
       return;
     }
 
-    setInvites((prev) => [...prev, data]);
+    onInvited(data);
     setEmail('');
   }
 
