@@ -256,27 +256,26 @@ export function ListView({
                   {group.subgroups.map((subgroup) => {
                     const secondaryZoneKey = `secondary:${group.label}:${subgroup.label}`;
                     return (
-                      <div
-                        key={subgroup.label}
-                        className={cn(
-                          'flex flex-col rounded-xl transition-colors',
-                          dragOverZone === secondaryZoneKey && 'bg-muted/60'
-                        )}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDragOverZone(secondaryZoneKey);
-                        }}
-                        onDragLeave={(e) => {
-                          e.stopPropagation();
-                          setDragOverZone((z) => (z === secondaryZoneKey ? null : z));
-                        }}
-                        onDrop={(e) => {
-                          e.stopPropagation();
-                          handleDropOnZone(secondaryZoneKey, secondaryField, subgroup.label, secondaryFallback)(e);
-                        }}
-                      >
-                        <h3 className="text-muted-foreground mt-3 px-1 text-sm font-semibold uppercase">
+                      <div key={subgroup.label} className="flex flex-col">
+                        <h3
+                          className={cn(
+                            'text-muted-foreground mt-3 rounded-lg px-1 text-sm font-semibold uppercase transition-colors',
+                            dragOverZone === secondaryZoneKey && 'bg-muted/60'
+                          )}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDragOverZone(secondaryZoneKey);
+                          }}
+                          onDragLeave={(e) => {
+                            e.stopPropagation();
+                            setDragOverZone((z) => (z === secondaryZoneKey ? null : z));
+                          }}
+                          onDrop={(e) => {
+                            e.stopPropagation();
+                            handleDropOnZone(secondaryZoneKey, secondaryField, subgroup.label, secondaryFallback)(e);
+                          }}
+                        >
                           {subgroup.label}
                         </h3>
                         {subgroup.items.map((item) => (
