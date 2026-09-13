@@ -256,7 +256,7 @@ export function ListView({
                 <div
                   key={group.label}
                   className={cn(
-                    'flex flex-col rounded-xl transition-colors',
+                    'flex flex-col rounded-xl pb-3 transition-colors',
                     dragOverZone === primaryZoneKey && 'bg-muted/60'
                   )}
                   onDragOver={(e) => {
