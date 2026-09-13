@@ -21,6 +21,8 @@ interface ItemRowProps {
   /** Grouped views already show category/person as a title, so hide the redundant field. */
   hideCategory?: boolean;
   hideAssignee?: boolean;
+  /** Flat (unsorted) view only: dropping a dragged row here moves it before this one. */
+  onDropBefore?: (draggedId: string) => void;
 }
 
 const ghostFieldClass =
@@ -36,11 +38,13 @@ export function ItemRow({
   onDelete,
   hideCategory,
   hideAssignee,
+  onDropBefore,
 }: ItemRowProps) {
   const [editingName, setEditingName] = React.useState(false);
   const [draftName, setDraftName] = React.useState(item.name);
   const [editingQty, setEditingQty] = React.useState(false);
   const [draftQty, setDraftQty] = React.useState(item.quantity);
+  const [dragOver, setDragOver] = React.useState(false);
 
   function commitName() {
     setEditingName(false);
@@ -55,7 +59,31 @@ export function ItemRow({
   }
 
   return (
-    <div className="flex flex-nowrap items-center gap-1 border-b border-border px-1 py-1.5">
+    <div
+      className={cn(
+        'flex flex-nowrap items-center gap-1 border-b border-t-2 border-border border-t-transparent px-1 py-1.5 transition-colors',
+        dragOver && 'border-t-primary'
+      )}
+      onDragOver={
+        onDropBefore
+          ? (e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }
+          : undefined
+      }
+      onDragLeave={onDropBefore ? () => setDragOver(false) : undefined}
+      onDrop={
+        onDropBefore
+          ? (e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const draggedId = e.dataTransfer.getData('text/plain');
+              if (draggedId && draggedId !== item.id) onDropBefore(draggedId);
+            }
+          : undefined
+      }
+    >
       <span
         className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
         draggable

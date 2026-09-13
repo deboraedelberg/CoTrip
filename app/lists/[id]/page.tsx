@@ -25,7 +25,7 @@ export default async function ListPage({ params }: { params: Promise<{ id: strin
     .from('items')
     .select('*')
     .eq('list_id', id)
-    .order('created_at', { ascending: true });
+    .order('position', { ascending: true });
 
   const { data: memberRows } = await supabase
     .from('list_members')

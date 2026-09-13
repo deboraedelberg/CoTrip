@@ -132,6 +132,22 @@ export function ListView({
     };
   }
 
+  function handleReorderBefore(targetId: string) {
+    return (draggedId: string) => {
+      const targetIndex = filteredItems.findIndex((i) => i.id === targetId);
+      if (targetIndex === -1) return;
+      const targetItem = filteredItems[targetIndex];
+      const prevItem = filteredItems[targetIndex - 1];
+      const newPosition = prevItem ? (prevItem.position + targetItem.position) / 2 : targetItem.position - 1;
+      updateItem(draggedId, { position: newPosition });
+    };
+  }
+
+  function handleReorderToEnd(draggedId: string) {
+    const lastItem = filteredItems[filteredItems.length - 1];
+    updateItem(draggedId, { position: (lastItem?.position ?? 0) + 1 });
+  }
+
   function toggleAssignee(key: string) {
     setExcludedAssignees((prev) => {
       const next = new Set(prev);
@@ -308,8 +324,28 @@ export function ListView({
                 onUpdate={(patch) => updateItem(item.id, patch)}
                 onDuplicate={() => duplicateItem(item.id)}
                 onDelete={() => deleteItem(item.id)}
+                onDropBefore={handleReorderBefore(item.id)}
               />
             ))}
+        {!groups && filteredItems.length > 0 ? (
+          <div
+            className={cn(
+              'h-3 border-t-2 border-transparent transition-colors',
+              dragOverZone === 'end' && 'border-t-primary'
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverZone('end');
+            }}
+            onDragLeave={() => setDragOverZone((z) => (z === 'end' ? null : z))}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverZone(null);
+              const draggedId = e.dataTransfer.getData('text/plain');
+              if (draggedId) handleReorderToEnd(draggedId);
+            }}
+          />
+        ) : null}
         {filteredItems.length === 0 && items.length > 0 ? (
           <p className="text-muted-foreground py-4 text-center text-sm">
             Ningún item coincide con estos filtros.

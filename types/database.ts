@@ -72,6 +72,8 @@ export interface Database {
           category: string | null;
           /** Freeform name, not a profiles.id — the assignee may not have an account. */
           assigned_to: string | null;
+          /** Manual sort order within the list (drag-to-reorder). */
+          position: number;
           is_packed: boolean;
           packed_by: string | null;
           packed_at: string | null;

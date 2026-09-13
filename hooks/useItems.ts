@@ -10,10 +10,18 @@ type ItemRow = Database['public']['Tables']['items']['Row'];
 export type ItemSyncStatus = 'synced' | 'pending' | 'error';
 export type Item = ItemRow & { _status: ItemSyncStatus };
 
+function byPosition(a: Item, b: Item) {
+  return a.position - b.position;
+}
+
 export function useItems(listId: string, initialItems: ItemRow[], userId: string) {
   const [items, setItems] = React.useState<Item[]>(
-    initialItems.map((row) => ({ ...row, _status: 'synced' }))
+    initialItems.map((row): Item => ({ ...row, _status: 'synced' })).sort(byPosition)
   );
+
+  function setSortedItems(updater: (prev: Item[]) => Item[]) {
+    setItems((prev) => updater(prev).slice().sort(byPosition));
+  }
 
   React.useEffect(() => {
     const supabase = createClient();
@@ -25,15 +33,15 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const row = payload.new as ItemRow;
-            setItems((prev) =>
+            setSortedItems((prev) =>
               prev.some((i) => i.id === row.id) ? prev : [...prev, { ...row, _status: 'synced' }]
             );
           } else if (payload.eventType === 'UPDATE') {
             const row = payload.new as ItemRow;
-            setItems((prev) => prev.map((i) => (i.id === row.id ? { ...row, _status: 'synced' } : i)));
+            setSortedItems((prev) => prev.map((i) => (i.id === row.id ? { ...row, _status: 'synced' } : i)));
           } else if (payload.eventType === 'DELETE') {
             const row = payload.old as ItemRow;
-            setItems((prev) => prev.filter((i) => i.id !== row.id));
+            setSortedItems((prev) => prev.filter((i) => i.id !== row.id));
           }
         }
       )
@@ -49,6 +57,7 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     const last = items[items.length - 1] as Item | undefined;
     let lastCategory = last?.category ?? null;
     let lastAssignedTo = last?.assigned_to ?? null;
+    let nextPosition = (last?.position ?? 0) + 1;
 
     for (const line of lines) {
       const trimmed = line.name.trim();
@@ -58,6 +67,8 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
       const assignedTo = line.assigned_to !== undefined ? line.assigned_to : lastAssignedTo;
       lastCategory = category;
       lastAssignedTo = assignedTo;
+      const position = nextPosition;
+      nextPosition += 1;
 
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const optimistic: Item = {
@@ -67,6 +78,7 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
         quantity: line.quantity,
         category,
         assigned_to: assignedTo,
+        position,
         is_packed: false,
         packed_by: null,
         packed_at: null,
@@ -75,7 +87,7 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
         updated_at: new Date().toISOString(),
         _status: 'pending',
       };
-      setItems((prev) => [...prev, optimistic]);
+      setSortedItems((prev) => [...prev, optimistic]);
 
       const { data, error } = await supabase
         .from('items')
@@ -86,17 +98,18 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
           created_by: userId,
           category,
           assigned_to: assignedTo,
+          position,
         })
         .select()
         .single();
 
       if (error || !data) {
         console.error('addItem failed', error);
-        setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
+        setSortedItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
         continue;
       }
 
-      setItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
+      setSortedItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
     }
   }
 
@@ -117,28 +130,33 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
     const previous = items.find((i) => i.id === id);
     if (!previous) return;
 
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, _status: 'pending' } : i)));
+    setSortedItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch, _status: 'pending' } : i)));
 
     const { data, error } = await supabase.from('items').update(patch).eq('id', id).select().single();
 
     if (error || !data) {
       console.error('updateItem failed', error);
-      setItems((prev) => prev.map((i) => (i.id === id ? { ...previous, _status: 'error' } : i)));
+      setSortedItems((prev) => prev.map((i) => (i.id === id ? { ...previous, _status: 'error' } : i)));
       return;
     }
 
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
+    setSortedItems((prev) => prev.map((i) => (i.id === id ? { ...data, _status: 'synced' } : i)));
   }
 
   async function duplicateItem(id: string) {
     const source = items.find((i) => i.id === id);
     if (!source) return;
 
+    const sourceIndex = items.findIndex((i) => i.id === id);
+    const nextItem = items[sourceIndex + 1] as Item | undefined;
+    const position = nextItem ? (source.position + nextItem.position) / 2 : source.position + 1;
+
     const supabase = createClient();
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimistic: Item = {
       ...source,
       id: tempId,
+      position,
       is_packed: false,
       packed_by: null,
       packed_at: null,
@@ -146,7 +164,7 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
       updated_at: new Date().toISOString(),
       _status: 'pending',
     };
-    setItems((prev) => [...prev, optimistic]);
+    setSortedItems((prev) => [...prev, optimistic]);
 
     const { data, error } = await supabase
       .from('items')
@@ -156,6 +174,7 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
         quantity: source.quantity,
         category: source.category,
         assigned_to: source.assigned_to,
+        position,
         created_by: userId,
       })
       .select()
@@ -163,17 +182,17 @@ export function useItems(listId: string, initialItems: ItemRow[], userId: string
 
     if (error || !data) {
       console.error('duplicateItem failed', error);
-      setItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
+      setSortedItems((prev) => prev.map((i) => (i.id === tempId ? { ...i, _status: 'error' } : i)));
       return;
     }
 
-    setItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
+    setSortedItems((prev) => prev.map((i) => (i.id === tempId ? { ...data, _status: 'synced' } : i)));
   }
 
   async function deleteItem(id: string) {
     const supabase = createClient();
     const previous = items;
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setSortedItems((prev) => prev.filter((i) => i.id !== id));
 
     if (id.startsWith('temp-')) return;
 
