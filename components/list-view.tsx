@@ -176,7 +176,7 @@ export function ListView({
   }
 
   return (
-    <div className="mx-auto flex min-h-svh max-w-lg flex-col gap-4 p-6">
+    <div className="mx-auto flex min-h-svh max-w-lg flex-col gap-4 p-6 pb-24">
       <div className="flex items-start justify-between gap-2">
         <div>
           <Link href="/" className="text-muted-foreground text-sm">
