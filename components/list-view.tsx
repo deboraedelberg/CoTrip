@@ -82,7 +82,7 @@ export function ListView({
   const [invites, setInvites] = React.useState(initialInvites);
   const [categoryFilter, setCategoryFilter] = React.useState('all');
   const [excludedAssignees, setExcludedAssignees] = React.useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = React.useState<SortBy>('added');
+  const [sortBy, setSortBy] = React.useState<SortBy>('person-category');
   const [dragOverZone, setDragOverZone] = React.useState<string | null>(null);
 
   const packedCount = items.filter((i) => i.is_packed).length;
@@ -250,7 +250,7 @@ export function ListView({
                   onDragLeave={() => setDragOverZone((z) => (z === primaryZoneKey ? null : z))}
                   onDrop={handleDropOnZone(primaryZoneKey, primaryField, group.label, primaryFallback)}
                 >
-                  <h2 className="text-foreground mt-6 px-1 text-sm font-semibold first:mt-0">
+                  <h2 className="text-foreground mt-6 px-1 text-lg font-semibold first:mt-0">
                     {group.label}
                   </h2>
                   {group.subgroups.map((subgroup) => {
@@ -276,7 +276,7 @@ export function ListView({
                           handleDropOnZone(secondaryZoneKey, secondaryField, subgroup.label, secondaryFallback)(e);
                         }}
                       >
-                        <h3 className="text-muted-foreground mt-3 px-1 text-xs font-medium uppercase">
+                        <h3 className="text-muted-foreground mt-3 px-1 text-sm font-semibold uppercase">
                           {subgroup.label}
                         </h3>
                         {subgroup.items.map((item) => (
