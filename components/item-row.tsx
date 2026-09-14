@@ -14,6 +14,7 @@ interface ItemRowProps {
   item: Item;
   categoryOptions: string[];
   assigneeOptions: string[];
+  assigneeLabels: Map<string, string>;
   onTogglePacked: () => void;
   onUpdate: (patch: { name?: string; quantity?: number; category?: string | null; assigned_to?: string | null }) => void;
   onDuplicate: () => void;
@@ -32,6 +33,7 @@ export function ItemRow({
   item,
   categoryOptions,
   assigneeOptions,
+  assigneeLabels,
   onTogglePacked,
   onUpdate,
   onDuplicate,
@@ -139,6 +141,7 @@ export function ItemRow({
           variant="avatar"
           value={item.assigned_to ?? ''}
           options={assigneeOptions}
+          labels={assigneeLabels}
           placeholder="Para quién"
           clearLabel="Sin asignar"
           onChange={(v) => onUpdate({ assigned_to: v || null })}

@@ -10,6 +10,7 @@ import { InviteSection } from '@/components/invite-section';
 import { ItemRow } from '@/components/item-row';
 import { QuickAddItemInput } from '@/components/quick-add-item-input';
 import { useItems } from '@/hooks/useItems';
+import { computeAvatarLabels } from '@/lib/avatar-labels';
 import { createClient } from '@/lib/supabase/client';
 import { parseItemLine } from '@/lib/parse-item-input';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,7 @@ export function ListView({
   const [excludedAssignees, setExcludedAssignees] = React.useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = React.useState<SortBy>('person-category');
   const [dragOverZone, setDragOverZone] = React.useState<string | null>(null);
+  const [addWarning, setAddWarning] = React.useState<string | null>(null);
 
   const packedCount = items.filter((i) => i.is_packed).length;
   const categoryOptions = Array.from(
@@ -98,6 +100,8 @@ export function ListView({
       ]
     )
   );
+
+  const avatarLabels = React.useMemo(() => computeAvatarLabels(assigneeOptions), [assigneeOptions]);
 
   const hasUnassignedItems = items.some((i) => !i.assigned_to);
 
@@ -162,7 +166,9 @@ export function ListView({
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
-    addItems(lines.map((line) => parseItemLine(line, categoryOptions, assigneeOptions)));
+    const parsed = lines.map((line) => parseItemLine(line, categoryOptions, assigneeOptions));
+    setAddWarning(parsed.find((p) => p.warning)?.warning ?? null);
+    addItems(parsed);
   }
 
   async function handleRename(newName: string) {
@@ -194,6 +200,7 @@ export function ListView({
         listId={list.id}
         members={members}
         invites={invites}
+        avatarLabels={avatarLabels}
         onInvited={(invite) => setInvites((prev) => [...prev, invite])}
         currentUserId={currentUserId}
       />
@@ -300,6 +307,7 @@ export function ListView({
                             item={item}
                             categoryOptions={categoryOptions}
                             assigneeOptions={assigneeOptions}
+                            assigneeLabels={avatarLabels}
                             onTogglePacked={() => togglePacked(item.id)}
                             onUpdate={(patch) => updateItem(item.id, patch)}
                             onDuplicate={() => duplicateItem(item.id)}
@@ -320,6 +328,7 @@ export function ListView({
                 item={item}
                 categoryOptions={categoryOptions}
                 assigneeOptions={assigneeOptions}
+                assigneeLabels={avatarLabels}
                 onTogglePacked={() => togglePacked(item.id)}
                 onUpdate={(patch) => updateItem(item.id, patch)}
                 onDuplicate={() => duplicateItem(item.id)}
@@ -354,6 +363,7 @@ export function ListView({
       </div>
 
       <QuickAddItemInput onSubmit={handleAddItems} />
+      {addWarning ? <p className="text-destructive text-xs">{addWarning}</p> : null}
     </div>
   );
 }

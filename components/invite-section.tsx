@@ -16,11 +16,19 @@ interface InviteSectionProps {
   listId: string;
   members: Profile[];
   invites: Invite[];
+  avatarLabels: Map<string, string>;
   onInvited: (invite: Invite) => void;
   currentUserId: string;
 }
 
-export function InviteSection({ listId, members, invites, onInvited, currentUserId }: InviteSectionProps) {
+export function InviteSection({
+  listId,
+  members,
+  invites,
+  avatarLabels,
+  onInvited,
+  currentUserId,
+}: InviteSectionProps) {
   const [open, setOpen] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [sending, setSending] = React.useState(false);
@@ -54,12 +62,12 @@ export function InviteSection({ listId, members, invites, onInvited, currentUser
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {members.map((m) => {
-          const label = m.name ?? m.email ?? '?';
-          const color = avatarColor(label);
+          const identity = m.name ?? m.email ?? '';
+          const color = avatarColor(identity || '?');
           return (
-            <Avatar key={m.id} size="sm" title={label}>
+            <Avatar key={m.id} size="sm" title={identity || '?'}>
               <AvatarFallback className="font-semibold" style={{ backgroundColor: color.bg, color: color.fg }}>
-                {label.slice(0, 1).toUpperCase()}
+                {avatarLabels.get(identity) ?? (identity || '?').slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           );
@@ -69,7 +77,7 @@ export function InviteSection({ listId, members, invites, onInvited, currentUser
           return (
             <Avatar key={inv.id} size="sm" className="after:border-dashed" title={`${inv.email} (pendiente)`}>
               <AvatarFallback className="font-semibold" style={{ backgroundColor: color.bg, color: color.fg }}>
-                {inv.email.slice(0, 1).toUpperCase()}
+                {avatarLabels.get(inv.email) ?? inv.email.slice(0, 1).toUpperCase()}
               </AvatarFallback>
             </Avatar>
           );

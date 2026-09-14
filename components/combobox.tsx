@@ -5,6 +5,7 @@ import * as React from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarColor } from '@/lib/avatar-color';
+import { normalizeForMatch } from '@/lib/avatar-labels';
 import { cn } from '@/lib/utils';
 
 interface ComboboxProps {
@@ -16,6 +17,8 @@ interface ComboboxProps {
   className?: string;
   /** 'input' shows the value as a text field; 'avatar' shows a compact avatar trigger (for assignee). */
   variant?: 'input' | 'avatar';
+  /** Disambiguated avatar initials ("D1"/"D2") for the 'avatar' variant. */
+  labels?: Map<string, string>;
 }
 
 export function Combobox({
@@ -26,6 +29,7 @@ export function Combobox({
   onChange,
   className,
   variant = 'input',
+  labels,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState(value);
@@ -40,7 +44,13 @@ export function Combobox({
   function commit(next: string) {
     setOpen(false);
     const trimmed = next.trim();
-    if (trimmed !== value) onChange(trimmed);
+    if (!trimmed) {
+      if (trimmed !== value) onChange(trimmed);
+      return;
+    }
+    const existing = options.find((o) => normalizeForMatch(o) === normalizeForMatch(trimmed));
+    const resolved = existing ?? trimmed;
+    if (resolved !== value) onChange(resolved);
   }
 
   React.useEffect(() => {
@@ -56,9 +66,9 @@ export function Combobox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, query]);
 
-  const normalizedQuery = query.trim().toLowerCase();
-  const filtered = options.filter((o) => o.toLowerCase().includes(normalizedQuery));
-  const exactMatch = options.some((o) => o.toLowerCase() === normalizedQuery);
+  const normalizedQuery = normalizeForMatch(query);
+  const filtered = options.filter((o) => normalizeForMatch(o).includes(normalizedQuery));
+  const exactMatch = options.some((o) => normalizeForMatch(o) === normalizedQuery);
   const showCreate = query.trim() && !exactMatch;
 
   const optionsList = (
@@ -127,7 +137,7 @@ export function Combobox({
                 className="font-semibold"
                 style={{ backgroundColor: color.bg, color: color.fg }}
               >
-                {value.trim().slice(0, 1).toUpperCase()}
+                {labels?.get(value) ?? value.trim().slice(0, 1).toUpperCase()}
               </AvatarFallback>
             ) : (
               <AvatarFallback>
